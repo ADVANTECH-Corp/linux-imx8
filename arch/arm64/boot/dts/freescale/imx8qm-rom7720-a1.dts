@@ -43,15 +43,7 @@
 			linux,default-trigger = "heartbeat";
 		};
 	};
-/*
-	modem_reset: modem-reset {
-		compatible = "gpio-reset";
-		reset-gpios = <&pca9557_b 7 GPIO_ACTIVE_LOW>;
-		reset-delay-us = <2000>;
-		reset-post-delay-ms = <40>;
-		#reset-cells = <0>;
-	};
-*/
+
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -65,7 +57,23 @@
 			regulator-max-microvolt = <3300000>;
 			regulator-always-on;
 		};
-/*
+
+		reg_2p5v: 2p5v {
+			compatible = "regulator-fixed";
+			regulator-name = "2P5V";
+			regulator-min-microvolt = <2500000>;
+			regulator-max-microvolt = <2500000>;
+			regulator-always-on;
+		};
+
+		reg_3p3v: 3p3v {
+			compatible = "regulator-fixed";
+			regulator-name = "3P3V";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+		/*
 		reg_can_en: regulator-can-gen {
 			compatible = "regulator-fixed";
 			regulator-name = "can-en";
@@ -84,7 +92,7 @@
 			enable-active-high;
 			vin-supply = <&reg_can_en>;
 		};
-*/
+		*/
 		reg_usdhc2_vmmc: usdhc2_vmmc {
 			compatible = "regulator-fixed";
 			regulator-name = "sw-3p3-sd1";
@@ -114,13 +122,6 @@
 		};
 */
 	};
-	
-	sound-hdmi {
-		compatible = "fsl,imx-audio-cdnhdmi";
-		model = "imx-audio-dp";
-		audio-cpu = <&sai_hdmi_tx>;
-		protocol = <1>;
-	};
 /*
 	sound-cs42888 {
 		compatible = "fsl,imx8qm-sabreauto-cs42888",
@@ -132,10 +133,22 @@
 	};
 */
 	sound-amix-sai {
+#if 0
+		status = "disabled";
+#else
 		compatible = "fsl,imx-audio-amix";
 		model = "amix-audio-sai";
 		dais = <&sai6>, <&sai7>;
 		amix-controller = <&amix>;
+#endif
+	};
+
+	sound-hdmi {
+		compatible = "fsl,imx-audio-cdnhdmi";
+		model = "imx-audio-hdmi";
+		audio-cpu = <&sai_hdmi_tx>;
+		constraint-rate = <48000>;
+		protocol = <1>;
 	};
 
 	lvds_backlight0: lvds_backlight@0 {
@@ -188,20 +201,6 @@
 		power-domains = <&pd_lsio>;
 		status = "okay";
 	};  
-
-	i2c0_lvds0: i2c@56246000 {
-		compatible = "fsl,imx8qm-lpi2c";
-		reg = <0x0 0x56246000 0x0 0x1000>;
-		interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-parent = <&irqsteer_lvds0>;
-		clocks = <&clk IMX8QM_LVDS0_I2C0_CLK>,
-			 <&clk IMX8QM_LVDS0_I2C0_IPG_CLK>;
-		clock-names = "per", "ipg";
-		assigned-clocks = <&clk IMX8QM_LVDS0_I2C0_CLK>;
-		assigned-clock-rates = <24000000>;
-		power-domains = <&pd_lvds0_i2c0>;
-		status = "disabled";
-	};
 };
 
 &acm {
@@ -351,7 +350,7 @@
 				SC_P_LVDS1_I2C1_SDA_LVDS1_I2C1_SDA	0xc600004c
 			>;
 		};
-/*
+		/*
 		pinctrl_hdmi_lpi2c0: hdmilpi2c0grp {
 			fsl,pins = <
 				SC_P_HDMI_TX0_TS_SCL_HDMI_TX0_I2C0_SCL  0xc600004c
@@ -378,14 +377,14 @@
 				SC_P_LVDS0_I2C0_SDA_LSIO_GPIO1_IO07		0x00000021
 			>;
 		};
-
+		*/
 		pinctrl_lpi2c0: lpi2c0grp {
 			fsl,pins = <
 				SC_P_HDMI_TX0_TS_SCL_DMA_I2C0_SCL   0xc600004c
 				SC_P_HDMI_TX0_TS_SDA_DMA_I2C0_SDA   0xc600004c
 			>;
 		};
-*/
+
 		pinctrl_csi0_lpi2c0: csi0lpi2c0grp {
 			fsl,pins = <
 				SC_P_MIPI_CSI0_I2C0_SCL_MIPI_CSI0_I2C0_SCL  0xc2000020
@@ -420,7 +419,14 @@
 				SC_P_UART0_TX_DMA_UART0_TX		0x06000020
 			>;
 		};
-
+#if 1
+		pinctrl_lpuart1: lpuart1grp {
+			fsl,pins = <
+				SC_P_UART1_RX_DMA_UART1_RX		0x06000020
+				SC_P_UART1_TX_DMA_UART1_TX		0x06000020
+			>;
+		};
+#else
 		pinctrl_lpuart1: lpuart1grp {
 			fsl,pins = <
 				SC_P_UART1_RX_DMA_UART1_RX		0x06000020
@@ -429,6 +435,7 @@
 				SC_P_UART1_RTS_B_DMA_UART1_RTS_B	0x06000020
 			>;
 		};
+#endif
 /*
 		pinctrl_lpuart3: lpuart3grp {
 			fsl,pins = <
@@ -648,7 +655,7 @@
 				SC_P_SPDIF0_TX_LSIO_GPIO2_IO15		0x00000021
 			>;
 		};
-
+#if 1
 		pinctrl_pciea: pcieagrp{
 			fsl,pins = <
 				SC_P_PCIE_CTRL0_CLKREQ_B_LSIO_GPIO4_IO27	0x00000021
@@ -664,6 +671,23 @@
 				SC_P_PCIE_CTRL1_PERST_B_LSIO_GPIO5_IO00		0x00000021
 			>;
 		};
+#else
+		pinctrl_pciea: pcieagrp{
+			fsl,pins = <
+				SC_P_PCIE_CTRL0_CLKREQ_B_LSIO_GPIO4_IO27	0x00000021
+				SC_P_PCIE_CTRL0_WAKE_B_LSIO_GPIO4_IO28		0x00000021
+				SC_P_PCIE_CTRL0_PERST_B_LSIO_GPIO4_IO29		0x00000021
+			>;
+		};
+
+		pinctrl_pcieb: pciebgrp{
+			fsl,pins = <
+				SC_P_PCIE_CTRL1_CLKREQ_B_LSIO_GPIO4_IO30	0x00000021
+				SC_P_PCIE_CTRL1_WAKE_B_LSIO_GPIO4_IO31		0x00000021
+				SC_P_PCIE_CTRL1_PERST_B_LSIO_GPIO5_IO00		0x00000021
+			>;
+		};
+#endif
 
 		pinctrl_usbotg1: usbotg1 {
 			fsl,pins = <
@@ -774,6 +798,7 @@
 		ethphy0: ethernet-phy@0 {
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <4>;
+//			at803x,led-act-blind-workaround;
 			at803x,eee-disabled;
 			at803x,vddio-1p8v;
 		};
@@ -922,15 +947,15 @@
 	clock-frequency = <100000>;
 	status = "disabled";
 };
-
+*/
 &i2c0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpi2c0>;
 	clock-frequency = <100000>;
-	status = "okay";
-
+	status = "disabled";
+	/*
 	codec: cs42888@48 {
 		compatible = "cirrus,cs42888";
 		reg = <0x48>;
@@ -943,8 +968,8 @@
 		reset-gpio = <&pca9557_a 2 1>;
 		power-domains = <&pd_mclk_out0>;
 	};
+	*/
 };
-*/
 
 &i2c1 {
 	#address-cells = <1>;
@@ -953,35 +978,63 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpi2c1>;
 	status = "okay";
+	
+	pca9545@70 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "nxp,pca9545";
+		reg = <0x70>;
+
+		i2c1@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			24c32@50 {
+				compatible = "fsl,24c32";
+				reg = <0x50>;
+			};
+		};
+
+		i2c1@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			codec: sgtl5000@0a {
+				compatible = "fsl,sgtl5000";
+				reg = <0x0a>;
+				clocks = <&clk IMX8QM_AUD_ESAI_1_IPG>;
+				VDDA-supply = <&reg_2p5v>;
+				VDDIO-supply = <&reg_3p3v>;
+				mclk = <16000000>;
+				mclk_source = <0>;
+			};
+		};
+
+	};
 	/*
-	pca9557_a: gpio@18 {
-		compatible = "nxp,pca9557";
-		reg = <0x18>;
+	pca9545_b: gpio@2 {
+		compatible = "nxp,pca9545";
+		reg = <0x2>;
 		gpio-controller;
 		#gpio-cells = <2>;
 	};
 
-	pca9557_b: gpio@19 {
-		compatible = "nxp,pca9557";
-		reg = <0x19>;
+	pca9545_c: gpio@4 {
+		compatible = "nxp,pca9545";
+		reg = <0x4>;
 		gpio-controller;
 		#gpio-cells = <2>;
 	};
 
-	pca9557_c: gpio@1b {
-		compatible = "nxp,pca9557";
-		reg = <0x1b>;
+	pca9545_d: gpio@8 {
+		compatible = "nxp,pca9545";
+		reg = <0x8>;
 		gpio-controller;
 		#gpio-cells = <2>;
 	};
-
-	pca9557_d: gpio@1f {
-		compatible = "nxp,pca9557";
-		reg = <0x1f>;
-		gpio-controller;
-		#gpio-cells = <2>;
-	};
-
+	*/
+    /*
 	fxas2100x@20 {
 		compatible = "fsl,fxas2100x";
 		reg = <0x20>;
@@ -1028,10 +1081,9 @@
 	status = "okay";
 };
 
-&lpuart1 { /* BT */
+&lpuart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lpuart1>;
-//	resets = <&modem_reset>;
 	status = "okay";
 };
 /*
@@ -1239,20 +1291,26 @@
 };
 
 &pciea{
-	ext_osc = <1>;
+	ext_osc = <0>;
+//	hard-wired = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pciea>;
 	reset-gpio = <&gpio4 29 GPIO_ACTIVE_LOW>;
+	disable-gpio = <&gpio4 28 GPIO_ACTIVE_LOW>;
 	clkreq-gpio = <&gpio4 27 GPIO_ACTIVE_LOW>;
+//	reset-gpio-active-high = <0>;
 	status = "okay";
 };
 
 &pcieb{
-	ext_osc = <1>;
+	ext_osc = <0>;
+//	hard-wired = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pcieb>;
 	reset-gpio = <&gpio5 0 GPIO_ACTIVE_LOW>;
-	clkreq-gpio = <&gpio4 1 GPIO_ACTIVE_LOW>;
+	disable-gpio = <&gpio4 31 GPIO_ACTIVE_LOW>;
+	clkreq-gpio = <&gpio4 30 GPIO_ACTIVE_LOW>;
+//	reset-gpio-active-high = <0>;
 //	epdev_on-supply = <&epdev_on>;
 	status = "okay";
 };
@@ -1319,8 +1377,8 @@
 	};
 };
 */
-
-&i2c1_lvds1 {
+#if 1
+&i2c0_lvds0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
 	pinctrl-names = "default";
@@ -1328,7 +1386,7 @@
 	clock-frequency = <100000>;
 	status = "okay";
 };
-
+#endif
 &i2c1_lvds0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -1421,19 +1479,6 @@
 		gpios = <&gpio2 20 GPIO_ACTIVE_HIGH>;
 	};
 	*/
-	i2c0_lvds0: i2c@56246000 {
-		compatible = "fsl,imx8qm-lpi2c";
-		reg = <0x0 0x56246000 0x0 0x1000>;
-		interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-parent = <&irqsteer_lvds0>;
-		clocks = <&clk IMX8QM_LVDS0_I2C0_CLK>,
-			 <&clk IMX8QM_LVDS0_I2C0_IPG_CLK>;
-		clock-names = "per", "ipg";
-		assigned-clocks = <&clk IMX8QM_LVDS0_I2C0_CLK>;
-		assigned-clock-rates = <24000000>;
-		power-domains = <&pd_lvds0_i2c0>;
-		status = "disabled";
-	};
 };
 
 &iomuxc {
