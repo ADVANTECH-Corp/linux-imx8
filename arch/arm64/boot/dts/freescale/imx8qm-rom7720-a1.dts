@@ -336,14 +336,14 @@
 				SC_P_ENET1_RGMII_RXD3_CONN_ENET1_RGMII_RXD3	0x06000020
 			>;
 		};
-*/
+
 		pinctrl_lvds0_lpi2c1: lvds0lpi2c1grp {
 			fsl,pins = <
 				SC_P_LVDS0_I2C1_SCL_LVDS0_I2C1_SCL	0xc600004c
 				SC_P_LVDS0_I2C1_SDA_LVDS0_I2C1_SDA	0xc600004c
 			>;
 		};
-
+*/
 		pinctrl_lvds1_lpi2c1: lvds1lpi2c1grp {
 			fsl,pins = <
 				SC_P_LVDS1_I2C1_SCL_LVDS1_I2C1_SCL	0xc600004c
@@ -658,7 +658,7 @@
 #if 1
 		pinctrl_pciea: pcieagrp{
 			fsl,pins = <
-				SC_P_PCIE_CTRL0_CLKREQ_B_LSIO_GPIO4_IO27	0x00000021
+				SC_P_PCIE_CTRL0_CLKREQ_B_LSIO_GPIO4_IO27	0xC0000001
 				SC_P_PCIE_CTRL0_WAKE_B_LSIO_GPIO4_IO28		0x00000021
 				SC_P_PCIE_CTRL0_PERST_B_LSIO_GPIO4_IO29		0x00000021
 			>;
@@ -701,12 +701,24 @@
 			>;
 		};
 
+		pinctrl_lvds0_bklt0: lvds0bklt0grp {
+			fsl,pins = <
+				SC_P_LVDS1_GPIO00_LSIO_GPIO1_IO10	0x00000021	
+			>;
+		};
+
+		pinctrl_lvds0_vdd0: lvds0vdd0grp {
+			fsl,pins = <
+				SC_P_LVDS0_GPIO01_LSIO_GPIO1_IO05	0x00000021
+			>;
+		};
+/*
 		pinctrl_lvds1_pwm0: lvds1pwm0grp {
 			fsl,pins = <
 				SC_P_LVDS1_GPIO00_LVDS1_PWM0_OUT	0x00000020
 			>;
 		};
-
+*/
 		pinctrl_mipi_csi0_gpio: mipicsi0gpiogrp{
 			fsl,pins = <
 				SC_P_MIPI_CSI0_GPIO0_00_MIPI_CSI0_GPIO0_IO00	0x00000021
@@ -1298,7 +1310,9 @@
 	reset-gpio = <&gpio4 29 GPIO_ACTIVE_LOW>;
 	disable-gpio = <&gpio4 28 GPIO_ACTIVE_LOW>;
 	clkreq-gpio = <&gpio4 27 GPIO_ACTIVE_LOW>;
-//	reset-gpio-active-high = <0>;
+	assigned-clocks = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
+	assigned-clocks-parent = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
+	assigned-clock-rates = <400000000>, <400000000>, <133333333>, <400000000>, <400000000>;
 	status = "okay";
 };
 
@@ -1308,10 +1322,19 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pcieb>;
 	reset-gpio = <&gpio5 0 GPIO_ACTIVE_LOW>;
-	disable-gpio = <&gpio4 31 GPIO_ACTIVE_LOW>;
+//	disable-gpio = <&gpio4 31 GPIO_ACTIVE_LOW>;
 	clkreq-gpio = <&gpio4 30 GPIO_ACTIVE_LOW>;
 //	reset-gpio-active-high = <0>;
 //	epdev_on-supply = <&epdev_on>;
+	assigned-clocks = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
+	assigned-clocks-parent = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
+	assigned-clock-rates = <400000000>, <400000000>, <133333333>, <400000000>, <400000000>;
+	status = "okay";
+};
+
+&sata {
+	assigned-clocks = <&clk IMX8QM_HSIO_SATA_CLK>, <&clk IMX8QM_HSIO_SATA_PER_CLK>;
+	assigned-clock-rates = <400000000>, <133333333>;
 	status = "okay";
 };
 
@@ -1343,18 +1366,24 @@
 	status = "okay";
 };
 
+&lvds_backlight0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_lvds0_bklt0>, <&pinctrl_lvds0_vdd0>;
+	gpios = <&gpio1 10 GPIO_ACTIVE_LOW>, <&gpio1 5 GPIO_ACTIVE_LOW>;
+};
+
 &lvds0_pwm {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lvds0_pwm0>;
 	status = "okay";
 };
-
+/*
 &lvds1_pwm {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lvds1_pwm0>;
 	status = "okay";
 };
-
+*/
 &ldb1_phy {
 	status = "okay";
 };
@@ -1377,7 +1406,7 @@
 	};
 };
 */
-#if 1
+/*
 &i2c0_lvds0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -1386,7 +1415,7 @@
 	clock-frequency = <100000>;
 	status = "okay";
 };
-#endif
+
 &i2c1_lvds0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -1394,22 +1423,8 @@
 	pinctrl-0 = <&pinctrl_lvds0_lpi2c1>;
 	clock-frequency = <100000>;
 	status = "okay";
-	/*
-	lvds-to-hdmi-bridge@4c {
-		compatible = "ite,it6263";
-		reg = <0x4c>;
-
-		port {
-			it6263_0_in: endpoint {
-				clock-lanes = <3>;
-				data-lanes = <0 1 2 4>;
-				remote-endpoint = <&lvds0_out>;
-			};
-		};
-	};
-	*/
 };
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 // original config for ROM-7720
 ///////////////////////////////////////////////////////////////////////////////
@@ -1460,13 +1475,11 @@
 		pinctrl-0 = <&pinctrl_gpio_usb_oc>;
 		gpios = <&gpio0 0 GPIO_ACTIVE_LOW>, <&gpio0 2 GPIO_ACTIVE_LOW>, <&gpio0 1 GPIO_ACTIVE_LOW>;
 	};
-
 	lvds-backlight-panelpower {
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_gpio_lvds0>;
 		gpios = <&gpio1 10 GPIO_ACTIVE_LOW>, <&gpio1 5 GPIO_ACTIVE_LOW>;
 	};
-
 	watchdog {
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_gpio_watchdog>;
@@ -1557,18 +1570,6 @@
 			>;
 		};
 */
-		pinctrl_lvds0_lpi2c0: lvds0lpi2c0grp {
-			fsl,pins = <
-				SC_P_LVDS0_I2C0_SCL_LVDS0_I2C0_SCL	0xc600004c
-				SC_P_LVDS0_I2C0_SDA_LVDS0_I2C0_SDA	0xc600004c
-			>;
-		};
-
-		pinctrl_lvds0_bl: lvds0_bl_grp{
-			fsl,pins = <
-				SC_P_LVDS0_GPIO00_LVDS0_PWM0_OUT	0x00000021
-			>;
-		};
 	};
 };
 
