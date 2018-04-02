@@ -142,7 +142,7 @@
 		amix-controller = <&amix>;
 #endif
 	};
-
+/*
 	sound-hdmi {
 		compatible = "fsl,imx-audio-cdnhdmi";
 		model = "imx-audio-hdmi";
@@ -150,8 +150,8 @@
 		constraint-rate = <48000>;
 		protocol = <1>;
 	};
-
-	lvds_backlight0: lvds_backlight@0 {
+*/
+	lvds_backlight0: pwm-backlight {
 		compatible = "pwm-backlight";
 		pwms = <&lvds0_pwm 0 100000 0>;
 
@@ -642,7 +642,7 @@
 		pinctrl_flexspi1: flexspi1grp {
 			fsl,pins = <
 				SC_P_QSPI1A_SCLK_LSIO_QSPI1A_SCLK	0x0600004c
-				SC_P_QSPI0A_SS0_B_LSIO_QSPI0A_SS0_B	0x0600004c
+				SC_P_QSPI1A_SS0_B_LSIO_QSPI1A_SS0_B	0x0600004c
 				SC_P_QSPI1A_DATA0_LSIO_QSPI1A_DATA0	0x0600004c
 				SC_P_QSPI1A_DATA1_LSIO_QSPI1A_DATA1	0x0600004c
 				SC_P_QSPI1A_DATA2_LSIO_QSPI1A_DATA2	0x0600004c
@@ -655,7 +655,7 @@
 				SC_P_SPDIF0_TX_LSIO_GPIO2_IO15		0x00000021
 			>;
 		};
-#if 1
+
 		pinctrl_pciea: pcieagrp{
 			fsl,pins = <
 				SC_P_PCIE_CTRL0_CLKREQ_B_LSIO_GPIO4_IO27	0xC0000001
@@ -671,23 +671,6 @@
 				SC_P_PCIE_CTRL1_PERST_B_LSIO_GPIO5_IO00		0x00000021
 			>;
 		};
-#else
-		pinctrl_pciea: pcieagrp{
-			fsl,pins = <
-				SC_P_PCIE_CTRL0_CLKREQ_B_LSIO_GPIO4_IO27	0x00000021
-				SC_P_PCIE_CTRL0_WAKE_B_LSIO_GPIO4_IO28		0x00000021
-				SC_P_PCIE_CTRL0_PERST_B_LSIO_GPIO4_IO29		0x00000021
-			>;
-		};
-
-		pinctrl_pcieb: pciebgrp{
-			fsl,pins = <
-				SC_P_PCIE_CTRL1_CLKREQ_B_LSIO_GPIO4_IO30	0x00000021
-				SC_P_PCIE_CTRL1_WAKE_B_LSIO_GPIO4_IO31		0x00000021
-				SC_P_PCIE_CTRL1_PERST_B_LSIO_GPIO5_IO00		0x00000021
-			>;
-		};
-#endif
 
 		pinctrl_usbotg1: usbotg1 {
 			fsl,pins = <
@@ -875,13 +858,14 @@
 	pinctrl-0 = <&pinctrl_flexspi1>;
 	status = "okay";
 
-	flash0: w25q256@0 {
+	flash0: w25q256jv@0 {
 		reg = <0>;
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "winbond,w25q256";
 		spi-max-frequency = <29000000>;
-		spi-nor,ddr-quad-read-dummy = <8>;
+		spi-nor,ddr-quad-read-dummy;
+		m25p,fast-read;
 	};
 };
 
@@ -1308,11 +1292,11 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pciea>;
 	reset-gpio = <&gpio4 29 GPIO_ACTIVE_LOW>;
-	disable-gpio = <&gpio4 28 GPIO_ACTIVE_LOW>;
+//	disable-gpio = <&gpio4 28 GPIO_ACTIVE_LOW>;
 	clkreq-gpio = <&gpio4 27 GPIO_ACTIVE_LOW>;
-	assigned-clocks = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
-	assigned-clocks-parent = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
-	assigned-clock-rates = <400000000>, <400000000>, <133333333>, <400000000>, <400000000>;
+//	assigned-clocks = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
+//	assigned-clock-parents = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
+//	assigned-clock-rates = <400000000>, <400000000>, <133333333>, <400000000>, <400000000>;
 	status = "okay";
 };
 
@@ -1326,10 +1310,7 @@
 	clkreq-gpio = <&gpio4 30 GPIO_ACTIVE_LOW>;
 //	reset-gpio-active-high = <0>;
 //	epdev_on-supply = <&epdev_on>;
-	assigned-clocks = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
-	assigned-clocks-parent = <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_PER_CLK>, <&clk IMX8QM_HSIO_AXI_CLK>;
-	assigned-clock-rates = <400000000>, <400000000>, <133333333>, <400000000>, <400000000>;
-	status = "okay";
+	status = "disabled";
 };
 
 &sata {
@@ -1369,7 +1350,7 @@
 &lvds_backlight0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lvds0_bklt0>, <&pinctrl_lvds0_vdd0>;
-	gpios = <&gpio1 10 GPIO_ACTIVE_LOW>, <&gpio1 5 GPIO_ACTIVE_LOW>;
+	gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>, <&gpio1 5 GPIO_ACTIVE_HIGH>;
 };
 
 &lvds0_pwm {
@@ -1387,25 +1368,56 @@
 &ldb1_phy {
 	status = "okay";
 };
-/*
+
 &ldb1 {
 	status = "okay";
 
 	lvds-channel@0 {
-		fsl,data-mapping = "jeida";
+		fsl,data-mapping = "spwg";
 		fsl,data-width = <24>;
-		status = "okay";
-
-		port@1 {
-			reg = <1>;
-
-			lvds0_out: endpoint {
-				remote-endpoint = <&it6263_0_in>;
+		status = "disabled";
+		display-timings {
+			native-mode = <&timing00>;
+			timing00: g070vw01v0 {
+				clock-frequency = <29500000>;
+				hactive = <800>;
+				vactive = <480>;
+				hback-porch = <96>;
+				hfront-porch = <24>;
+				vback-porch = <3>;
+				vfront-porch = <10>;
+				hsync-len = <72>;
+				vsync-len = <7>;
 			};
 		};
 	};
+
+	lvds-channel@1 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <24>;
+		status = "okay";
+		display-timings {
+			native-mode = <&timing01>;
+			timing01: g070vw01v0 {
+				clock-frequency = <29500000>;
+				hactive = <800>;
+				vactive = <480>;
+				hback-porch = <96>;
+				hfront-porch = <24>;
+				vback-porch = <3>;
+				vfront-porch = <10>;
+				hsync-len = <72>;
+				vsync-len = <7>;
+			}; 
+		};
+	};
 };
-*/
+
+&hdmi {
+	compatible = "fsl,imx8qm-hdmi";
+	status = "disabled";
+};
+
 /*
 &i2c0_lvds0 {
 	#address-cells = <1>;
@@ -1571,9 +1583,4 @@
 		};
 */
 	};
-};
-
-&hdmi {
-	compatible = "fsl,imx8qm-hdmi";
-	status = "okay";
 };
