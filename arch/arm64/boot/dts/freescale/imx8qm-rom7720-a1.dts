@@ -73,7 +73,24 @@
 			regulator-max-microvolt = <3300000>;
 			regulator-always-on;
 		};
-		/*
+
+		reg_can_en: regulator-can-gen {
+			compatible = "regulator-fixed";
+			regulator-name = "can-en";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+		
+		reg_can_stby: regulator-can-stby {
+			compatible = "regulator-fixed";
+			regulator-name = "can-stby";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+			vin-supply = <&reg_can_en>;
+		};
+/*
 		reg_can_en: regulator-can-gen {
 			compatible = "regulator-fixed";
 			regulator-name = "can-en";
@@ -82,7 +99,7 @@
 			gpio = <&pca9557_b 5 GPIO_ACTIVE_HIGH>;
 			enable-active-high;
 		};
-
+		
 		reg_can_stby: regulator-can-stby {
 			compatible = "regulator-fixed";
 			regulator-name = "can-stby";
@@ -92,7 +109,7 @@
 			enable-active-high;
 			vin-supply = <&reg_can_en>;
 		};
-		*/
+*/
 		reg_usdhc2_vmmc: usdhc2_vmmc {
 			compatible = "regulator-fixed";
 			regulator-name = "sw-3p3-sd1";
@@ -166,9 +183,9 @@
 				     80 81 82 83 84 85 86 87 88 89
 				     90 91 92 93 94 95 96 97 98 99
 				    100>;
-		default-brightness-level = <80>;
+		default-brightness-level = <81>;
 	};
-
+/*
 	lvds_backlight1: lvds_backlight@1 {
 		compatible = "pwm-backlight";
 		pwms = <&lvds1_pwm 0 100000 0>;
@@ -186,7 +203,7 @@
 				    100>;
 		default-brightness-level = <80>;
 	};
-
+*/
 	flexspi1: flexspi@05d130000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -228,7 +245,7 @@
 	assigned-clock-rates = <786432000>, <49152000>, <24576000>;
 	status = "okay";
 };
-
+/*
 &esai0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_esai0>;
@@ -239,9 +256,9 @@
 			<&clk IMX8QM_AUD_ESAI_0_EXTAL_IPG>;
 	assigned-clock-parents = <&clk IMX8QM_AUD_ACM_AUD_PLL_CLK0_CLK>;
 	assigned-clock-rates = <0>, <786432000>, <49152000>, <24576000>, <49152000>;
-	status = "okay";
+	status = "disabled";
 };
-
+*/
 &sai_hdmi_tx {
 	assigned-clocks =<&clk IMX8QM_ACM_HDMI_TX_SAI0_MCLK_SEL>,
 			<&clk IMX8QM_AUD_PLL0_DIV>,
@@ -282,7 +299,7 @@
 
 &iomuxc {
 	imx8qm-arm2 {
-
+		/*
 		pinctrl_esai0: esai0grp {
 			fsl,pins = <
 				SC_P_ESAI0_FSR_AUD_ESAI0_FSR		0xc600004c
@@ -298,7 +315,7 @@
 				SC_P_MCLK_OUT0_AUD_ACM_MCLK_OUT0	0xc600004c
 			>;
 		};
-
+		*/
 		pinctrl_fec1: fec1grp {
 			fsl,pins = <
 				SC_P_ENET0_MDC_CONN_ENET0_MDC			0x06000020
@@ -684,13 +701,13 @@
 			>;
 		};
 
-		pinctrl_lvds0_bklt0: lvds0bklt0grp {
+		pinctrl_lvds0_bklt: lvds0_bklt {
 			fsl,pins = <
 				SC_P_LVDS1_GPIO00_LSIO_GPIO1_IO10	0x00000021	
 			>;
 		};
 
-		pinctrl_lvds0_vdd0: lvds0vdd0grp {
+		pinctrl_lvds0_vdd: lvds0_vdd {
 			fsl,pins = <
 				SC_P_LVDS0_GPIO01_LSIO_GPIO1_IO05	0x00000021
 			>;
@@ -816,14 +833,15 @@
 	fsl,magic-packet;
 	status = "okay";
 };
-
+*/
 &flexcan1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_flexcan1>;
 	xceiver-supply = <&reg_can_stby>;
+	//xceiver-supply = <&reg_can_en>;
 	status = "okay";
 };
-
+/*
 &flexcan2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_flexcan2>;
@@ -1310,7 +1328,7 @@
 	clkreq-gpio = <&gpio4 30 GPIO_ACTIVE_LOW>;
 //	reset-gpio-active-high = <0>;
 //	epdev_on-supply = <&epdev_on>;
-	status = "disabled";
+	status = "okay";
 };
 
 &sata {
@@ -1349,8 +1367,8 @@
 
 &lvds_backlight0 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_lvds0_bklt0>, <&pinctrl_lvds0_vdd0>;
-	gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>, <&gpio1 5 GPIO_ACTIVE_HIGH>;
+	pinctrl-0 = <&pinctrl_lvds0_bklt>, <&pinctrl_lvds0_vdd>;
+	gpios = <&gpio1 10 GPIO_ACTIVE_LOW>, <&gpio1 5 GPIO_ACTIVE_LOW>;
 };
 
 &lvds0_pwm {
@@ -1358,17 +1376,19 @@
 	pinctrl-0 = <&pinctrl_lvds0_pwm0>;
 	status = "okay";
 };
+
 /*
 &lvds1_pwm {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lvds1_pwm0>;
-	status = "okay";
+	status = "disabled";
 };
 */
 &ldb1_phy {
 	status = "okay";
 };
 
+#if 1
 &ldb1 {
 	status = "okay";
 
@@ -1412,6 +1432,33 @@
 		};
 	};
 };
+#else
+&ldb1 {
+	status = "okay";
+	fsl,dual-channel;
+
+	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <24>;
+		status = "okay";
+		display-timings {
+			native-mode = <&timing30>;
+			//Dual channel panel 
+			timing30: g215hvn0 {
+				clock-frequency = <170000000>;
+				hactive = <1920>;
+				vactive = <1080>;
+				hback-porch = <90>;
+				hfront-porch = <30>;
+				vback-porch = <5>;
+				vfront-porch = <38>;
+				hsync-len = <60>;
+				vsync-len = <7>;
+			};
+		};
+	};
+};
+#endif
 
 &hdmi {
 	compatible = "fsl,imx8qm-hdmi";
@@ -1440,7 +1487,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // original config for ROM-7720
 ///////////////////////////////////////////////////////////////////////////////
-
 / {
 	board {
 		compatible = "proc-board";
@@ -1453,23 +1499,28 @@
 		pinctrl-0 = <&pinctrl_gpio_power>;
 		gpios = <&gpio0 30 GPIO_ACTIVE_LOW>, <&gpio0 31 GPIO_ACTIVE_HIGH>, <&gpio1 2 GPIO_ACTIVE_HIGH>;
 	};
+	*/
 
-	gpio-keys-sleep {
-		pinctrl-names = "default";
+	gpio-keys {
 		compatible = "gpio-keys";
+		pinctrl-names = "default";
 		#address-cells = <1>;
 		#size-cells = <0>;
+
 		pinctrl-0 = <&pinctrl_gpio_sleep>;
-		sleep@2 {
+
+		sleep@1 {
 			label = "Sleep Button";
 			gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
-			linux,input-type = <1>; // EV_KEY
-			linux,code = <116>; // KEY_SUSPEND
-			debounce_interval = <1>;
-			gpio-key,wakeup;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>; //KEY_SUSPEND 205, KEY_SLEEP 142
+			debounce-interval = <1>;
+//			gpio-key,wakeup;
 		};
+
 	};
 
+	/*
 	battery-low {
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_gpio_batlow>;
@@ -1504,11 +1555,67 @@
 		gpios = <&gpio2 20 GPIO_ACTIVE_HIGH>;
 	};
 	*/
+
+	esai1: esai@59810000 {
+		compatible = "fsl,imx8qm-esai";
+		reg = <0x0 0x59810000 0x0 0x10000>;
+		interrupts = <GIC_SPI 411 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk IMX8QM_AUD_ESAI_1_IPG>,
+			<&clk IMX8QM_AUD_ESAI_1_EXTAL_IPG>,
+			<&clk IMX8QM_AUD_ESAI_1_IPG>,
+			<&clk IMX8QM_CLK_DUMMY>;
+		clock-names = "core", "extal", "fsys", "spba";
+		dmas = <&edma2 6 0 1>, <&edma2 7 0 0>;
+		dma-names = "rx", "tx";
+		power-domains = <&pd_esai1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_esai1>;
+		assigned-clocks = <&clk IMX8QM_ACM_ESAI1_MCLK_SEL>,
+				<&clk IMX8QM_AUD_PLL0_DIV>,
+				<&clk IMX8QM_AUD_ACM_AUD_PLL_CLK0_DIV>,
+				<&clk IMX8QM_AUD_ACM_AUD_REC_CLK0_DIV>,
+				<&clk IMX8QM_AUD_ESAI_1_EXTAL_IPG>;
+		assigned-clock-parents = <&clk IMX8QM_AUD_ACM_AUD_PLL_CLK0_CLK>;
+		assigned-clock-rates = <0>, <786432000>, <49152000>, <24576000>, <49152000>;
+		status = "okay";
+	};
+
+	sound-sgtl5000 {
+		compatible = "fsl,sgtl5000",
+			     "fsl,imx-audio-sgtl5000";
+		model = "sgtl5000";
+		ssi-controller = <&esai1>;
+		audio-routing =
+			"MIC_IN", "Mic Jack",
+			"Mic Jack", "Mic Bias",
+			"Headphone Jack", "HP_OUT";
+		mux-int-port = <2>;
+		mux-ext-port = <3>;
+		audio-codec = <&codec>;
+		status = "okay";
+	};
+};
+
+&sai1 {
+	assigned-clocks = <&clk IMX8QM_ACM_SAI1_MCLK_SEL>,
+			<&clk IMX8QM_AUD_PLL1_DIV>,
+			<&clk IMX8QM_AUD_ACM_AUD_PLL_CLK1_DIV>,
+			<&clk IMX8QM_AUD_ACM_AUD_REC_CLK1_DIV>,
+			<&clk IMX8QM_AUD_SAI_1_MCLK>;
+	assigned-clock-parents = <&clk IMX8QM_AUD_ACM_AUD_PLL_CLK1_CLK>;
+	assigned-clock-rates = <0>, <786432000>, <98304000>, <24576000>, <98304000>;
+	fsl,sai-asynchronous;
+	fsl,txm-rxs;
+	status = "okay";
 };
 
 &iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_common_gpio>;
+
 	imx8qm-arm2 {
-		pinctrl_gpio_power: gpio_power_grp{
+
+		pinctrl_gpio_power: gpio_power_grp{ // no power button here
 			fsl,pins = <
 				SC_P_SCU_GPIO0_02_LSIO_GPIO0_IO30		0x00000021
 				SC_P_SCU_GPIO0_03_LSIO_GPIO0_IO31		0x00000021
@@ -1569,12 +1676,6 @@
 				SC_P_FLEXCAN0_RX_LSIO_GPIO3_IO29		0x00000021
 			>;
 		};
-
-		pinctrl_gpio_i2s_rst: gpio_i2s_rst{
-			fsl,pins = <
-				SC_P_SPI3_CS0_LSIO_GPIO2_IO20		0x00000021
-			>;
-		};
 /*
 		pinctrl_fan: pwm_fanout_grp{
 			fsl,pins = <
@@ -1582,5 +1683,13 @@
 			>;
 		};
 */
+		pinctrl_esai1: esai1grp {
+			fsl,pins = <
+				SC_P_ESAI1_FSR_AUD_ESAI1_FSR			0xc600004c
+				SC_P_ESAI1_SCKR_AUD_ESAI1_SCKR			0xc600004c
+				SC_P_ESAI1_TX0_AUD_ESAI1_TX0			0xc600004c
+				SC_P_ESAI1_TX5_RX0_AUD_ESAI1_TX5_RX0	0xc600004c
+			>;
+		};
 	};
 };
