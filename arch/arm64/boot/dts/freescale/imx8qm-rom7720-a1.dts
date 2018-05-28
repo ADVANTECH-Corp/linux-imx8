@@ -13,11 +13,31 @@
  */
 
 /dts-v1/;
-
 #include "fsl-imx8qm.dtsi"
 
+#define GPIO_COMMON_AS_SLEEP_BUTTON
+
+#undef HDMI_DISPLAY
+#define LVDS_DISPLAY
+#undef LVDS_DUAL
+#define LVDS_SINGLE_0
+#undef LVDS_SINGLE_1
+
+#if defined(HDMI_DISPLAY) && defined(LVDS_DISPLAY)
+#	error "only one display allowed"
+#endif
+
+#ifdef LVDS_DISPLAY
+#	if defined(LVDS_DUAL) && (defined(LVDS_SINGLE_0) || defined(LVDS_SINGLE_1))
+#		error "single/dual channel cannot be used concurrently"
+#	endif
+#	if defined(LVDS_SINGLE_0) && defined(LVDS_SINGLE_1)
+#		error "single channel 0/1 cannot be used concurrently"
+#	endif
+#endif
+
 / {
-	model = "Freescale i.MX8QM ARM2 ROM7720";
+	model = "Freescale i.MX8QM ROM-7720";
 
 	compatible = "fsl,imx8qm-arm2", "fsl,imx8qm";
 /*
@@ -159,7 +179,8 @@
 		amix-controller = <&amix>;
 #endif
 	};
-/*
+
+#ifdef HDMI_DISPLAY
 	sound-hdmi {
 		compatible = "fsl,imx-audio-cdnhdmi";
 		model = "imx-audio-hdmi";
@@ -167,7 +188,8 @@
 		constraint-rate = <48000>;
 		protocol = <1>;
 	};
-*/
+#endif
+
 	lvds_backlight0: pwm-backlight {
 		compatible = "pwm-backlight";
 		pwms = <&lvds0_pwm 0 100000 0>;
@@ -217,7 +239,7 @@
 		clock-names = "fspi";
 		power-domains = <&pd_lsio>;
 		status = "okay";
-	};  
+	};
 };
 
 &acm {
@@ -1023,6 +1045,7 @@
 				mclk = <16000000>;
 				mclk_source = <0>;
 			};
+
 		};
 
 	};
@@ -1328,7 +1351,7 @@
 	clkreq-gpio = <&gpio4 30 GPIO_ACTIVE_LOW>;
 //	reset-gpio-active-high = <0>;
 //	epdev_on-supply = <&epdev_on>;
-	status = "okay";
+	status = "disabled";
 };
 
 &sata {
@@ -1388,14 +1411,49 @@
 	status = "okay";
 };
 
-#if 1
+#if defined(LVDS_DISPLAY) && defined(LVDS_DUAL)
 &ldb1 {
 	status = "okay";
+	fsl,dual-channel;
 
 	lvds-channel@0 {
 		fsl,data-mapping = "spwg";
 		fsl,data-width = <24>;
+		status = "okay";
+
+		display-timings {
+			native-mode = <&timing30>;
+			//Dual channel panel 
+			timing30: g215hvn0 {
+				clock-frequency = <170000000>;
+				hactive = <1920>;
+				vactive = <1080>;
+				hback-porch = <90>;
+				hfront-porch = <30>;
+				vback-porch = <5>;
+				vfront-porch = <38>;
+				hsync-len = <60>;
+				vsync-len = <7>;
+			};
+		};
+	};
+};
+#else
+&ldb1 {
+#	ifdef LVDS_DISPLAY
+	status = "okay";
+#	else
+	status = "disabled";
+#	endif
+
+	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <24>;
+#	ifdef LVDS_SINGLE_0
+		status = "okay";
+#	else
 		status = "disabled";
+#	endif
 		display-timings {
 			native-mode = <&timing00>;
 			timing00: g070vw01v0 {
@@ -1415,7 +1473,11 @@
 	lvds-channel@1 {
 		fsl,data-mapping = "spwg";
 		fsl,data-width = <24>;
+#	ifdef LVDS_SINGLE_1
 		status = "okay";
+#	else
+		status = "disabled";
+#	endif
 		display-timings {
 			native-mode = <&timing01>;
 			timing01: g070vw01v0 {
@@ -1432,37 +1494,15 @@
 		};
 	};
 };
-#else
-&ldb1 {
-	status = "okay";
-	fsl,dual-channel;
-
-	lvds-channel@0 {
-		fsl,data-mapping = "spwg";
-		fsl,data-width = <24>;
-		status = "okay";
-		display-timings {
-			native-mode = <&timing30>;
-			//Dual channel panel 
-			timing30: g215hvn0 {
-				clock-frequency = <170000000>;
-				hactive = <1920>;
-				vactive = <1080>;
-				hback-porch = <90>;
-				hfront-porch = <30>;
-				vback-porch = <5>;
-				vfront-porch = <38>;
-				hsync-len = <60>;
-				vsync-len = <7>;
-			};
-		};
-	};
-};
 #endif
 
 &hdmi {
 	compatible = "fsl,imx8qm-hdmi";
-	status = "disabled";
+#	ifdef HDMI_DISPLAY
+		status = "okay";
+#	else
+		status = "disabled";
+#	endif
 };
 
 /*
@@ -1500,7 +1540,6 @@
 		gpios = <&gpio0 30 GPIO_ACTIVE_LOW>, <&gpio0 31 GPIO_ACTIVE_HIGH>, <&gpio1 2 GPIO_ACTIVE_HIGH>;
 	};
 	*/
-
 	gpio-keys {
 		compatible = "gpio-keys";
 		pinctrl-names = "default";
@@ -1511,12 +1550,74 @@
 
 		sleep@1 {
 			label = "Sleep Button";
+#ifdef GPIO_COMMON_AS_SLEEP_BUTTON
+			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+#else
 			gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+#endif
 			linux,input-type = <EV_PWR>;
 			linux,code = <KEY_SUSPEND>; //KEY_SUSPEND 205, KEY_SLEEP 142
 			debounce-interval = <1>;
-//			gpio-key,wakeup;
+			wakeup-source;
 		};
+#ifdef GPIO_COMMON_AS_SLEEP_BUTTON
+		sleep@2 {
+			label = "Sleep Button";
+			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>;
+			debounce-interval = <1>;
+			wakeup-source;
+		};
+		sleep@3 {
+			label = "Sleep Button";
+			gpios = <&gpio4 1 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>;
+			debounce-interval = <1>;
+			wakeup-source;
+		};
+		sleep@4 {
+			label = "Sleep Button";
+			gpios = <&gpio4 2 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>;
+			debounce-interval = <1>;
+			wakeup-source;
+		};
+		sleep@5 {
+			label = "Sleep Button";
+			gpios = <&gpio6 10 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>;
+			debounce-interval = <1>;
+			wakeup-source;
+		};
+		sleep@6 {
+			label = "Sleep Button";
+			gpios = <&gpio6 11 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>;
+			debounce-interval = <1>;
+			wakeup-source;
+		};
+		sleep@7 {
+			label = "Sleep Button";
+			gpios = <&gpio6 12 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>;
+			debounce-interval = <1>;
+			wakeup-source;
+		};
+		sleep@8 {
+			label = "Sleep Button";
+			gpios = <&gpio6 13 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_PWR>;
+			linux,code = <KEY_SUSPEND>;
+			debounce-interval = <1>;
+			wakeup-source;
+		};
+#endif
 
 	};
 
@@ -1592,7 +1693,7 @@
 		mux-int-port = <2>;
 		mux-ext-port = <3>;
 		audio-codec = <&codec>;
-		status = "okay";
+		status = "disabled";
 	};
 };
 
@@ -1622,15 +1723,9 @@
 				SC_P_SCU_GPIO0_06_LSIO_GPIO1_IO02		0x00000021
 			>;
 		};
-
 		pinctrl_gpio_sleep: gpio_sleep_grp{
 			fsl,pins = <
-				SC_P_SCU_GPIO0_05_LSIO_GPIO1_IO01		0x00000021
-			>;
-		};
-
-		pinctrl_common_gpio: common_gpio_grp{
-			fsl,pins = <
+#ifdef GPIO_COMMON_AS_SLEEP_BUTTON
 				SC_P_M40_GPIO0_00_LSIO_GPIO0_IO08		0x00000021	/* GPIO0 */
 				SC_P_M40_GPIO0_01_LSIO_GPIO0_IO09		0x00000021	/* GPIO1 */
 				SC_P_FLEXCAN2_RX_LSIO_GPIO4_IO01		0x00000021	/* GPIO2 */
@@ -1639,6 +1734,24 @@
 				SC_P_ENET1_RGMII_TX_CTL_LSIO_GPIO6_IO11	0x00000021	/* GPIO5 */
 				SC_P_ENET1_RGMII_TXD0_LSIO_GPIO6_IO12	0x00000021	/* GPIO6 */
 				SC_P_ENET1_RGMII_TXD1_LSIO_GPIO6_IO13	0x00000021	/* GPIO7 */
+#else
+				SC_P_SCU_GPIO0_05_LSIO_GPIO1_IO01		0x00000021
+#endif
+			>;
+		};
+
+		pinctrl_common_gpio: common_gpio_grp{
+			fsl,pins = <
+#ifndef GPIO_COMMON_AS_SLEEP_BUTTON
+				SC_P_M40_GPIO0_00_LSIO_GPIO0_IO08		0x00000021	/* GPIO0 */
+				SC_P_M40_GPIO0_01_LSIO_GPIO0_IO09		0x00000021	/* GPIO1 */
+				SC_P_FLEXCAN2_RX_LSIO_GPIO4_IO01		0x00000021	/* GPIO2 */
+				SC_P_FLEXCAN2_TX_LSIO_GPIO4_IO02		0x00000021	/* GPIO3 */
+				SC_P_ENET1_RGMII_TXC_LSIO_GPIO6_IO10	0x00000021	/* GPIO4 */
+				SC_P_ENET1_RGMII_TX_CTL_LSIO_GPIO6_IO11	0x00000021	/* GPIO5 */
+				SC_P_ENET1_RGMII_TXD0_LSIO_GPIO6_IO12	0x00000021	/* GPIO6 */
+				SC_P_ENET1_RGMII_TXD1_LSIO_GPIO6_IO13	0x00000021	/* GPIO7 */
+#endif
 			>;
 		};
 
