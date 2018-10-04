@@ -24,6 +24,12 @@
 #include <linux/spi/flash.h>
 #include <linux/mtd/spi-nor.h>
 
+#ifdef CONFIG_ADV_QSPI_TEST
+#define KDEBUG(...) printk("=debug= " __VA_ARGS__)
+#else
+#define KDEBUG(...)
+#endif
+
 /* Define max times to check status register before we give up. */
 
 /*
@@ -168,22 +174,15 @@ static inline int spi_nor_read_dummy_cycles(struct spi_nor *nor)
 	case SPI_NOR_FAST:
 	case SPI_NOR_DUAL:
 	case SPI_NOR_QUAD:
+#ifdef CONFIG_ADV_QSPI_TEST
+        return 8;
+#endif
 	case SPI_NOR_OCTAL:
 		return 8;
 	case SPI_NOR_NORMAL:
 		return 0;
 	}
 	return 0;
-}
-
-/*
- * Write status register 1 byte
- * Returns negative if error occurred.
- */
-static inline int write_sr(struct spi_nor *nor, u8 val)
-{
-	nor->cmd_buf[0] = val;
-	return nor->write_reg(nor, SPINOR_OP_WRSR, nor->cmd_buf, 1);
 }
 
 /*
@@ -202,6 +201,68 @@ static inline int write_disable(struct spi_nor *nor)
 {
 	return nor->write_reg(nor, SPINOR_OP_WRDI, NULL, 0);
 }
+
+/*
+ * Write status register 1 byte
+ * Returns negative if error occurred.
+ */
+static inline int write_sr(struct spi_nor *nor, u8 val)
+{
+    write_enable(nor);
+	nor->cmd_buf[0] = val;
+	return nor->write_reg(nor, SPINOR_OP_WRSR, nor->cmd_buf, 1);
+}
+
+#ifdef CONFIG_ADV_QSPI_TEST
+static inline int write_sr1_2(struct spi_nor *nor, u16 val)
+{
+    write_enable(nor);
+	nor->cmd_buf[0] = val & 0xff;
+	nor->cmd_buf[1] = val >> 8;
+	return nor->write_reg(nor, SPINOR_OP_WRSR, nor->cmd_buf, 2);
+}
+static inline int write_sr2(struct spi_nor *nor, u8 val)
+{
+    write_enable(nor);
+	nor->cmd_buf[0] = val;
+	return nor->write_reg(nor, SPINOR_OP_WRSR2, nor->cmd_buf, 1);
+}
+
+static inline int write_sr3(struct spi_nor *nor, u8 val)
+{
+    write_enable(nor);
+	nor->cmd_buf[0] = val;
+	return nor->write_reg(nor, SPINOR_OP_WRSR3, nor->cmd_buf, 1);
+}
+
+static int read_sr2(struct spi_nor *nor)
+{
+	int ret;
+	u8 val;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR2, &val, 1);
+	if (ret < 0) {
+		pr_err("error %d reading SR-2\n", (int) ret);
+		return ret;
+	}
+
+	return val;
+}
+
+static int read_sr3(struct spi_nor *nor)
+{
+	int ret;
+	u8 val;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR3, &val, 1);
+	if (ret < 0) {
+		pr_err("error %d reading SR-3\n", (int) ret);
+		return ret;
+	}
+
+	return val;
+}
+#endif
 
 static inline struct spi_nor *mtd_to_spi_nor(struct mtd_info *mtd)
 {
@@ -223,14 +284,13 @@ static inline int set_4byte(struct spi_nor *nor, const struct flash_info *info,
 		need_wren = true;
 	case SNOR_MFR_MACRONIX:
 	case SNOR_MFR_WINBOND:
-		if (need_wren)
+if (need_wren)
 			write_enable(nor);
 
 		cmd = enable ? SPINOR_OP_EN4B : SPINOR_OP_EX4B;
 		status = nor->write_reg(nor, cmd, NULL, 0);
-		if (need_wren)
+if (need_wren)
 			write_disable(nor);
-
 		return status;
 	default:
 		/* Spansion style */
@@ -238,6 +298,7 @@ static inline int set_4byte(struct spi_nor *nor, const struct flash_info *info,
 		return nor->write_reg(nor, SPINOR_OP_BRWR, nor->cmd_buf, 1);
 	}
 }
+                
 static inline int spi_nor_sr_ready(struct spi_nor *nor)
 {
 	int sr = read_sr(nor);
@@ -815,6 +876,11 @@ static int spi_nor_is_locked(struct mtd_info *mtd, loff_t ofs, uint64_t len)
  * old entries may be missing 4K flag.
  */
 static const struct flash_info spi_nor_ids[] = {
+#ifdef CONFIG_ARCH_ADVANTECH
+    /* Micron N25Q */
+    { "n25qba16", INFO(0x20ba16, 0, 64 * 1024,  64, SECT_4K) },
+    { "n25qbb16", INFO(0x20bb16, 0, 64 * 1024,  64, SECT_4K) },
+#endif
 	/* Atmel -- some are (confusingly) marketed as "DataFlash" */
 	{ "at25fs010",  INFO(0x1f6601, 0, 32 * 1024,   4, SECT_4K) },
 	{ "at25fs040",  INFO(0x1f6604, 0, 64 * 1024,   8, SECT_4K) },
@@ -1026,8 +1092,20 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "w25q80", INFO(0xef5014, 0, 64 * 1024,  16, SECT_4K) },
 	{ "w25q80bl", INFO(0xef4014, 0, 64 * 1024,  16, SECT_4K) },
 	{ "w25q128", INFO(0xef4018, 0, 64 * 1024, 256, SECT_4K) },
+#ifdef CONFIG_ADV_QSPI_TEST
+    { "w25q256", INFO(0xef4019, 
+//0, 64 * 1024,  512, SECT_4K | SPI_NOR_QUAD_READ
+0, 64 * 1024,  512, SECT_4K
+//0, 64 * 1024,  512, SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB // X
+//0, 32 * 1024, 1024, SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB // X
+//0,  4 * 1024, 8192, SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB // X 
+//0,  4 * 1024, 8192, SECT_4K_PMC | SPI_NOR_QUAD_READ ) // X
+//0,  4 * 1024, 8192, SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_HAS_LOCK ) // X
+      ) .addr_width=4,
+    },
+#else
 	{ "w25q256", INFO(0xef4019, 0, 64 * 1024, 512, SECT_4K) },
-
+#endif
 	/* Catalyst / On Semiconductor -- non-JEDEC */
 	{ "cat25c11", CAT25_INFO(  16, 8, 16, 1, SPI_NOR_NO_ERASE | SPI_NOR_NO_FR) },
 	{ "cat25c03", CAT25_INFO(  32, 8, 16, 2, SPI_NOR_NO_ERASE | SPI_NOR_NO_FR) },
@@ -1043,6 +1121,17 @@ static const struct flash_info *spi_nor_read_id(struct spi_nor *nor)
 	u8			id[SPI_NOR_MAX_ID_LEN];
 	const struct flash_info	*info;
 
+#ifdef CONFIG_ADV_QSPI_TEST
+{
+    int ret;
+	u8	id[8];
+    
+	ret = nor->read_reg(nor, 0x90, id, 8);
+KDEBUG("%s 90:%d %02x%02x%02x%02x %02x%02x%02x%02x\n", __func__, ret, id[0], id[1], id[2], id[3], id[4], id[5], id[6], id[7]);
+	ret = nor->read_reg(nor, 0x94, id, 8);
+KDEBUG("%s 94:%d %02x%02x%02x%02x %02x%02x%02x%02x\n", __func__, ret, id[0], id[1], id[2], id[3], id[4], id[5], id[6], id[7]);
+}
+#endif
 	tmp = nor->read_reg(nor, SPINOR_OP_RDID, id, SPI_NOR_MAX_ID_LEN);
 	if (tmp < 0) {
 		dev_dbg(nor->dev, "error %d reading JEDEC ID\n", tmp);
@@ -1294,6 +1383,45 @@ static int spansion_quad_enable(struct spi_nor *nor)
 	return 0;
 }
 
+#ifdef CONFIG_ADV_QSPI_TEST
+static int w25q256jv_quad_mode(struct spi_nor *nor, u8 quad_enabled)
+{
+	int ret;
+	int quad_en = 0x02;  //SR-2 bit 1
+
+	write_enable(nor);
+
+    if (quad_enabled) {
+        ret = write_sr2(nor, quad_en);
+    } else {
+        ret = write_sr2(nor, 0x00);
+    }
+	if (ret < 0) {
+		dev_err(nor->dev,
+			"error while writing configuration register\n");
+		return -EINVAL;
+	}
+
+	ret = spi_nor_wait_till_ready(nor);
+	if (ret) {
+		dev_err(nor->dev,
+			"timeout while writing configuration register\n");
+		return ret;
+	}
+
+	/* read back and check it */
+	ret = read_sr2(nor);
+KDEBUG("%s SR2=0x%02x\n", __func__, ret);
+    if (ret && quad_en) {
+KDEBUG("%s quad enabled\n", __func__);
+    } else {
+KDEBUG("%s quad disabled\n", __func__);
+    }
+
+	return 0;
+}
+#endif
+
 static int set_ddr_quad_mode(struct spi_nor *nor, const struct flash_info *info)
 {
 	int status;
@@ -1329,6 +1457,15 @@ static int set_quad_mode(struct spi_nor *nor, const struct flash_info *info)
 	int status;
 
 	switch (JEDEC_MFR(info)) {
+#ifdef CONFIG_ADV_QSPI_TEST
+    case SNOR_MFR_WINBOND:
+        status=w25q256jv_quad_mode(nor, true);
+		if (status) {
+			dev_err(nor->dev, "W25Q256JV quad-read not enabled\n");
+			return -EINVAL;
+		}
+		return status;
+#endif
 	case SNOR_MFR_MACRONIX:
 		status = macronix_quad_enable(nor);
 		if (status) {
@@ -1369,6 +1506,7 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 	int ret;
 	int i;
 
+KDEBUG("%s name=%s mode=%d\n", __func__, name, mode);
 	ret = spi_nor_check(nor);
 	if (ret)
 		return ret;
@@ -1493,6 +1631,7 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 	if (info->flags & SPI_NOR_NO_FR)
 		nor->flash_read = SPI_NOR_NORMAL;
 
+KDEBUG("%s mode=%d flags=0x%02x\n", __func__, mode, info->flags);
 	/* DDR Octal/Quad/Dual-read mode takes precedence over fast/normal */
 	if (mode == SPI_NOR_DDR_OCTAL && info->flags & SPI_NOR_DDR_OCTAL_READ) {
 		nor->flash_read = SPI_NOR_DDR_OCTAL;
@@ -1598,6 +1737,43 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 	}
 
 	nor->read_dummy = spi_nor_read_dummy_cycles(nor);
+
+#ifdef CONFIG_ADV_QSPI_TEST
+if (JEDEC_MFR(info) == SNOR_MFR_WINBOND && nor->addr_width == 4) {
+    int sr, sr2, sr3;
+
+    ret=set_4byte(nor, info, 1);
+KDEBUG("%s set_4byte return %d\n", __func__, ret);
+
+    sr=read_sr(nor);  sr2=read_sr2(nor);  sr3=read_sr3(nor);
+KDEBUG("%s SR1=0x%02x SR2=0x%02x SR3=0x%02x\n", __func__, sr, sr2, sr3);
+
+	ret = w25q256jv_quad_mode(nor, false);
+	nor->flash_read = SPI_NOR_QUAD;
+    nor->addr_width = 4;
+    nor->read_opcode = 0x6c;
+    nor->read_dummy=8;
+    nor->program_opcode = 0x12;
+    nor->erase_opcode = 0xdc;
+    mtd->erasesize = info->sector_size;
+
+    sr=read_sr(nor);  sr2=read_sr2(nor);  sr3=read_sr3(nor);
+KDEBUG("%s SR1=0x%02x SR2=0x%02x SR3=0x%02x\n", __func__, sr, sr2, sr3);
+KDEBUG("%s >>> READ:0x%02x(dummy=%d) PROGRAM:0x%02x ERASE:0x%02x(size=%d)\n", __func__, \
+       nor->read_opcode, nor->read_dummy, nor->program_opcode, nor->erase_opcode, mtd->erasesize
+      );
+#ifdef CONFIG_ADV_QSPI_TEST
+{
+    int ret;
+	u8	id[8];
+    
+	ret = nor->read_reg(nor, 0x94, id, 8);
+KDEBUG("%s 94:%d %02x%02x%02x%02x %02x%02x%02x%02x\n", __func__, ret, id[0], id[1], id[2], id[3], id[4], id[5], id[6], id[7]);
+}
+#endif
+
+}
+#endif
 
 	dev_info(dev, "%s (%lld Kbytes)\n", info->name,
 			(long long)mtd->size >> 10);

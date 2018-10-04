@@ -479,6 +479,14 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 	fsl_lpspi->dev = &pdev->dev;
 	dev_set_drvdata(&pdev->dev, fsl_lpspi);
 
+#ifdef CONFIG_ARCH_ADVANTECH
+{
+    int num_cs;
+    
+	ret = of_property_read_u32(np, "fsl,spi-num-chipselects", &num_cs);
+	if (ret == 0) master->num_chipselect=num_cs;
+}
+#endif
 	for (i = 0; i < master->num_chipselect; i++) {
 		int cs_gpio = of_get_named_gpio(np, "cs-gpios", i);
 

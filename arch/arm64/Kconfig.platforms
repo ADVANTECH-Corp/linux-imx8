@@ -228,6 +228,18 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
+menuconfig ARCH_ADVANTECH
+	bool "Advantech Board Family"
+	help
+	  This enables support for Advantech Board Family
+
+if ARCH_ADVANTECH
+
+	config ADV_QSPI_TEST
+	bool "including test code for Quad SPI"
+
+endif
+
 config ARCH_FSL_IMX8QM
 	bool "Freescale i.MX8QM SOC"
 	select PINCTRL

@@ -379,7 +379,11 @@ struct cfi_fixup {
 #define CFI_MFR_ST		0x0020 /* STMicroelectronics */
 #define CFI_MFR_MICRON		0x002c
 #define CFI_MFR_TOSHIBA		0x0098
+#ifdef CONFIG_ADV_QSPI_TEST
+#define CFI_MFR_WINBOND		0x00EF
+#else
 #define CFI_MFR_WINBOND		0x00DA
+#endif
 
 void cfi_fixup(struct mtd_info *mtd, struct cfi_fixup* fixups);
 

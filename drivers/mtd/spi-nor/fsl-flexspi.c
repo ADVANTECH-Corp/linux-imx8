@@ -404,6 +404,14 @@
 #define SEQID_BRWR		11
 #define SEQID_RD_EVCR		12
 #define SEQID_WD_EVCR		13
+#ifdef CONFIG_ADV_QSPI_TEST
+#define SEQID_RDSR2		9
+#define SEQID_RDSR3		11
+#define SEQID_RD90		12
+#define SEQID_RD94		13
+#define SEQID_WRSR2		14
+#define SEQID_WRSR3		15
+#endif
 
 #define FLEXSPI_MIN_IOMAP	SZ_4M
 
@@ -420,6 +428,15 @@ struct fsl_flexspi_devtype_data {
 	int driver_data;
 };
 
+#ifdef CONFIG_ADV_QSPI_TEST
+static struct fsl_flexspi_devtype_data imx8qm_data = {
+	.devtype = FSL_FLEXSPI_IMX8QM,
+	.rxfifo = 128,
+	.txfifo = 1024,
+	.ahb_buf_size = 2048,
+	.driver_data = 0,
+};
+#else
 static struct fsl_flexspi_devtype_data imx8qm_data = {
 	.devtype = FSL_FLEXSPI_IMX8QM,
 	/* .rxfifo = 1024, */
@@ -428,6 +445,7 @@ static struct fsl_flexspi_devtype_data imx8qm_data = {
 	.ahb_buf_size = 2048,
 	.driver_data = 0,
 };
+#endif
 
 static struct fsl_flexspi_devtype_data imx8qxp_data = {
 	.devtype = FSL_FLEXSPI_IMX8QXP,
@@ -523,6 +541,15 @@ static void fsl_flexspi_init_lut(struct fsl_flexspi *flex)
 	}
 
 	if (nor->flash_read == SPI_NOR_QUAD) {
+#ifdef CONFIG_ADV_QSPI_TEST
+		writel(LUT0(CMD, PAD1, op) | LUT1(ADDR, PAD1, addrlen),
+			base + FLEXSPI_LUT(lut_base));
+
+		writel(LUT0(DUMMY, PAD1, dm) |
+		       LUT1(FSL_READ, PAD4, rxfifo),
+		       base + FLEXSPI_LUT(lut_base + 1));
+dev_info(nor->dev, "op=0x%02x, dm=%d\n", op, dm);
+#else
 		if (op == SPINOR_OP_READ_1_1_4 || op == SPINOR_OP_READ4_1_1_4) {
 			/* read mode : 1-1-4 */
 			writel(LUT0(CMD, PAD1, op) | LUT1(ADDR, PAD1, addrlen),
@@ -534,6 +561,7 @@ static void fsl_flexspi_init_lut(struct fsl_flexspi *flex)
 		} else {
 			dev_err(nor->dev, "Unsupported opcode : 0x%.2x\n", op);
 		}
+#endif
 	} else if (nor->flash_read == SPI_NOR_DDR_QUAD) {
 		if (op == SPINOR_OP_READ_1_4_4_D ||
 			 op == SPINOR_OP_READ4_1_4_4_D) {
@@ -601,10 +629,16 @@ static void fsl_flexspi_init_lut(struct fsl_flexspi *flex)
 	writel(LUT0(CMD, PAD1, SPINOR_OP_WRSR) | LUT1(FSL_WRITE, PAD1, 0x2),
 			base + FLEXSPI_LUT(lut_base));
 
+#ifdef CONFIG_ADV_QSPI_TEST
+	lut_base = SEQID_RDSR2 * 4;
+	writel(LUT0(CMD, PAD1, SPINOR_OP_RDSR2) | LUT1(FSL_READ, PAD1, 0x1),
+			base + FLEXSPI_LUT(lut_base));
+#else
 	/* Read Configuration Register */
 	lut_base = SEQID_RDCR * 4;
 	writel(LUT0(CMD, PAD1, SPINOR_OP_RDCR) | LUT1(FSL_READ, PAD1, 0x1),
 			base + FLEXSPI_LUT(lut_base));
+#endif
 
 	/* Write disable */
 	lut_base = SEQID_WRDI * 4;
@@ -614,6 +648,28 @@ static void fsl_flexspi_init_lut(struct fsl_flexspi *flex)
 	lut_base = SEQID_EN4B * 4;
 	writel(LUT0(CMD, PAD1, SPINOR_OP_EN4B), base + FLEXSPI_LUT(lut_base));
 
+#ifdef CONFIG_ADV_QSPI_TEST
+	lut_base = SEQID_RDSR3 * 4;
+	writel(LUT0(CMD, PAD1, SPINOR_OP_RDSR3) | LUT1(FSL_READ, PAD1, 0x1),
+			base + FLEXSPI_LUT(lut_base));
+
+	lut_base = SEQID_RD90 * 4;
+	writel(LUT0(CMD, PAD1, SPINOR_OP_RD90) | LUT1(FSL_READ, PAD1, 0x8),
+			base + FLEXSPI_LUT(lut_base));
+
+	lut_base = SEQID_RD94 * 4;
+	writel(LUT0(CMD, PAD1, SPINOR_OP_RD94) | LUT1(FSL_READ, PAD1, 0x8),
+			base + FLEXSPI_LUT(lut_base));
+
+	/* Write Register */
+	lut_base = SEQID_WRSR2 * 4;
+	writel(LUT0(CMD, PAD1, SPINOR_OP_WRSR2) | LUT1(FSL_WRITE, PAD1, 0x2),
+			base + FLEXSPI_LUT(lut_base));
+
+	lut_base = SEQID_WRSR3 * 4;
+	writel(LUT0(CMD, PAD1, SPINOR_OP_WRSR3) | LUT1(FSL_WRITE, PAD1, 0x2),
+			base + FLEXSPI_LUT(lut_base));
+#else
 	/* Enter 4 Byte Mode (Spansion) */
 	lut_base = SEQID_BRWR * 4;
 	writel(LUT0(CMD, PAD1, SPINOR_OP_BRWR), base + FLEXSPI_LUT(lut_base));
@@ -627,13 +683,66 @@ static void fsl_flexspi_init_lut(struct fsl_flexspi *flex)
 	lut_base = SEQID_WD_EVCR * 4;
 	writel(LUT0(CMD, PAD1, SPINOR_OP_WD_EVCR),
 	       base + FLEXSPI_LUT(lut_base));
+#endif
 	fsl_flexspi_lock_lut(flex);
 }
 
 /* Get the SEQID for the command */
 static int fsl_flexspi_get_seqid(struct fsl_flexspi *flex, u8 cmd)
 {
-
+#ifdef CONFIG_ADV_QSPI_TEST
+	switch (cmd) {
+	case SPINOR_OP_READ_1_1_4_D:
+	case SPINOR_OP_READ_1_1_8_D:
+	case SPINOR_OP_READ_1_4_4_D:
+	case SPINOR_OP_READ4_1_4_4_D:
+	case SPINOR_OP_READ4_1_1_4:
+	case SPINOR_OP_READ_1_1_4:
+	case SPINOR_OP_READ4:
+		return SEQID_QUAD_READ;
+//READ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	case SPINOR_OP_PP:
+    case SPINOR_OP_PP_4B:
+    case SPINOR_OP_PP_Q:
+    case SPINOR_OP_PP_Q_4B:
+		return SEQID_PP;
+//PROGRAM ^^^^^^^^^^^^^^^^^^^^^^^^^
+	case SPINOR_OP_BE_4K:
+	case SPINOR_OP_SE:
+    case SPINOR_OP_SE_4B:
+		return SEQID_SE;
+// ERASE ^^^^^^^^^^^^^^^^^^^^^^^^^^
+	case SPINOR_OP_WREN: return SEQID_WREN; // write enable
+	case SPINOR_OP_WRDI: return SEQID_WRDI; // write disable
+	case SPINOR_OP_RDSR:
+		return SEQID_RDSR;
+	case SPINOR_OP_RDSR2:
+		return SEQID_RDSR2;
+	case SPINOR_OP_RDSR3:
+		return SEQID_RDSR3;
+	case SPINOR_OP_CHIP_ERASE:
+		return SEQID_CHIP_ERASE;
+	case SPINOR_OP_RDID:
+		return SEQID_RDID;
+	case SPINOR_OP_WRSR:
+		return SEQID_WRSR;
+	case SPINOR_OP_WRSR2:
+		return SEQID_WRSR2;
+	case SPINOR_OP_WRSR3:
+		return SEQID_WRSR3;
+	case SPINOR_OP_EN4B:
+		return SEQID_EN4B;
+	case SPINOR_OP_BRWR:
+		return SEQID_BRWR;
+	case SPINOR_OP_RD90:
+		return SEQID_RD90;
+	case SPINOR_OP_RD94:
+		return SEQID_RD94;
+	default:
+		dev_err(flex->dev, "Unsupported cmd 0x%.2x\n", cmd);
+		break;
+	}
+#else
 	switch (cmd) {
 	case SPINOR_OP_READ_1_1_4_D:
 	case SPINOR_OP_READ_1_1_8_D:
@@ -674,6 +783,7 @@ static int fsl_flexspi_get_seqid(struct fsl_flexspi *flex, u8 cmd)
 		dev_err(flex->dev, "Unsupported cmd 0x%.2x\n", cmd);
 		break;
 	}
+#endif
 	return -EINVAL;
 }
 
@@ -1297,6 +1407,12 @@ static int fsl_flexspi_probe(struct platform_device *pdev)
 					&dummy);
 		if (!ret && dummy > 0)
 			mode = SPI_NOR_DDR_OCTAL;
+#ifdef CONFIG_ADV_QSPI_TEST
+		ret = of_property_read_u32(np, "spi-nor,quad-read",
+					&dummy);
+		if (!ret && dummy > 0)
+			mode = SPI_NOR_QUAD;
+#endif
 
 		/* set the chip address for READID */
 		fsl_flexspi_set_base_addr(flex, nor);
